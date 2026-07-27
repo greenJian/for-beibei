@@ -674,7 +674,7 @@ const styles = {
         justifyContent: 'center', zIndex: 200, padding: 20,
     },
     detailCard: {
-        width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'auto',
+        width: '100%', maxWidth: 'min(560px, 92vw)', maxHeight: '90vh', overflow: 'auto',
         padding: 32, background: 'linear-gradient(160deg, #1a1428, #0c1018)',
         border: '1px solid rgba(246,190,200,0.25)', borderRadius: 20,
         boxShadow: '0 20px 60px rgba(0,0,0,0.6)', position: 'relative',

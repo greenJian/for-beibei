@@ -55,6 +55,14 @@ export default function ChinaMap({ onProvinceSelect }) {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [litProvinces, setLitProvinces] = useState(new Set());
   const [hoveredProvince, setHoveredProvince] = useState(null);
+  const [isCompact, setIsCompact] = useState(window.innerWidth < 1024);
+
+  // Detect compact layout (tablet + mobile)
+  useEffect(() => {
+    const check = () => setIsCompact(window.innerWidth < 1024);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Responsive dimensions
   useEffect(() => {
@@ -113,16 +121,20 @@ export default function ChinaMap({ onProvinceSelect }) {
 
   return (
     <div style={{
-      width: '100%', height: '100%', position: 'relative',
-      background: '#0a0f1a',
+      width: '100%', height: '100%', display: 'flex',
+      flexDirection: 'column', background: '#0a0f1a',
     }}>
-      <svg
-        ref={svgRef}
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${width} ${height}`}
-        style={{ display: 'block' }}
-      >
+      <div style={{
+        flex: 1, width: '100%', position: 'relative',
+        minHeight: isCompact ? 220 : 0,
+      }}>
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ display: 'block' }}
+        >
         <rect width={width} height={height} fill="#0a0f1a" />
 
         {geoLoading && (
@@ -195,6 +207,60 @@ export default function ChinaMap({ onProvinceSelect }) {
           );
         })}
       </svg>
+      </div>
+
+      {/* Province list for tablet + mobile */}
+      {isCompact && geoData && geoData.features && (
+        <div style={{
+          flexShrink: 0, width: '100%',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(10,15,26,0.95)',
+        }}>
+          <div style={{
+            padding: '8px 12px',
+            fontSize: 12, color: 'rgba(255,255,255,0.35)',
+          }}>
+            点击省份查看详情
+          </div>
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: 6,
+            padding: '0 12px 12px',
+            maxHeight: isCompact ? 140 : 0,
+            overflowY: 'auto',
+          }}>
+            {geoData.features.map((feature, fi) => {
+              const name = feature.properties.name;
+              if (!name) return null;
+              const isLit = litProvinces.has(name);
+              const short = PROVINCE_SHORT[name] || name;
+              return (
+                <button
+                  key={fi}
+                  onClick={() => onProvinceSelect && onProvinceSelect(name)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 16,
+                    border: isLit
+                      ? '1px solid rgba(255,184,77,0.5)'
+                      : '1px solid rgba(255,255,255,0.1)',
+                    background: isLit
+                      ? 'rgba(255,184,77,0.15)'
+                      : 'rgba(255,255,255,0.03)',
+                    color: isLit ? '#FFB84D' : 'rgba(255,255,255,0.45)',
+                    fontSize: 13,
+                    fontWeight: isLit ? 600 : 400,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {short}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

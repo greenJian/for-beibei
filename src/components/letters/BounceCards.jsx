@@ -139,7 +139,7 @@ export default function BounceCards({
                     style={{
                         transform: transformStyles[idx] ?? 'none',
                         zIndex: childArr.length - idx,
-                        width: 400,
+                        width: 'min(400px, 90vw)',
                         height: 280
                     }}
                     onMouseEnter={() => pushSiblings(idx)}

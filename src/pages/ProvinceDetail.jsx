@@ -304,7 +304,7 @@ export default function ProvinceDetail({ provinceName, goBack }) {
         <div style={{ width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
           {/* Hero section — click to replace */}
           <div
-            style={{ position: 'relative', width: '100%', height: '62vh', minHeight: 380, overflow: 'hidden', cursor: 'pointer' }}
+            style={{ position: 'relative', width: '100%', height: 'max(62vh, 320px)', minHeight: 320, overflow: 'hidden', cursor: 'pointer' }}
             onClick={() => heroFileRef.current?.click()}
             onMouseEnter={e => { const el = e.currentTarget.querySelector('.hero-replace-overlay'); if (el) el.style.opacity = '1'; }}
             onMouseLeave={e => { const el = e.currentTarget.querySelector('.hero-replace-overlay'); if (el) el.style.opacity = '0'; }}
@@ -644,7 +644,7 @@ export default function ProvinceDetail({ provinceName, goBack }) {
               exit={{ scale: 0.95, y: 10, opacity: 0 }}
               onClick={e => e.stopPropagation()}
               style={{
-                width: 480, maxHeight: '85vh', overflow: 'auto',
+                width: 'min(480px, 92vw)', maxHeight: '85vh', overflow: 'auto',
                 background: 'linear-gradient(180deg, rgba(13,21,37,0.99) 0%, rgba(10,15,26,0.99) 100%)',
                 borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)',
                 padding: '28px 24px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',

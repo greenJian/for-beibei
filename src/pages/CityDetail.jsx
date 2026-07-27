@@ -311,8 +311,8 @@ const styles = {
     hero: {
         position: 'relative',
         width: '100%',
-        height: '62vh',
-        minHeight: 380,
+        height: 'max(62vh, 320px)',
+        minHeight: 320,
         overflow: 'hidden',
     },
     heroImg: {

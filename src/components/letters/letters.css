@@ -793,6 +793,12 @@
     opacity: 0.4;
 }
 
+/* Touch device fix: always show hover-dependent elements */
+@media (hover: none) and (pointer: coarse) {
+    .envelope-delete-btn { opacity: 1 !important; }
+    .delete-draft-btn { opacity: 1 !important; }
+}
+
 .cloud-1 {
     width: 120px;
     height: 50px;
