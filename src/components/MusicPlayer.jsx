@@ -16,6 +16,7 @@ const PARAMS = {
 const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasMusic, setHasMusic] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -24,9 +25,19 @@ const MusicPlayer = () => {
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
   const hueShiftRef = useRef(0);
+  const hasInitAudio = useRef(false);
+  const autoplayAttempted = useRef(false);
 
-  // Initialize particles
+  // Detect mobile
   useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Initialize particles (desktop only)
+  useEffect(() => {
+    if (isMobile) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const size = 200;
@@ -48,10 +59,11 @@ const MusicPlayer = () => {
       });
     }
     particlesRef.current = pArray;
-  }, []);
+  }, [isMobile]);
 
-  // Render loop
+  // Render loop (desktop only)
   useEffect(() => {
+    if (isMobile) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -103,24 +115,27 @@ const MusicPlayer = () => {
     };
     renderFrame();
     return () => cancelAnimationFrame(animationRef.current);
-  }, [isPlaying]);
+  }, [isPlaying, isMobile]);
 
   // Initialize audio context
   const initAudio = useCallback(() => {
     if (!audioRef.current) return;
-    if (!audioCtxRef.current) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      audioCtxRef.current = new AudioContext();
-      analyserRef.current = audioCtxRef.current.createAnalyser();
-      analyserRef.current.smoothingTimeConstant = 0.85;
-      analyserRef.current.fftSize = 64;
-      sourceRef.current = audioCtxRef.current.createMediaElementSource(audioRef.current);
-      sourceRef.current.connect(analyserRef.current);
-      analyserRef.current.connect(audioCtxRef.current.destination);
+    if (hasInitAudio.current) {
+      // Already initialized, just resume if suspended
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+      return;
     }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
+    hasInitAudio.current = true;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioCtxRef.current = new AudioContext();
+    analyserRef.current = audioCtxRef.current.createAnalyser();
+    analyserRef.current.smoothingTimeConstant = 0.85;
+    analyserRef.current.fftSize = 64;
+    sourceRef.current = audioCtxRef.current.createMediaElementSource(audioRef.current);
+    sourceRef.current.connect(analyserRef.current);
+    analyserRef.current.connect(audioCtxRef.current.destination);
   }, []);
 
   // Toggle play/pause
@@ -144,37 +159,47 @@ const MusicPlayer = () => {
     }
   }, [isPlaying, initAudio, hasMusic]);
 
-  // Auto-play on mount (after user interaction with page)
+  // Auto-play on mount
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    let interactionCleanup = null;
+
     const tryAutoPlay = async () => {
+      if (autoplayAttempted.current) return;
+      autoplayAttempted.current = true;
+
       try {
         initAudio();
         await audio.play();
         setIsPlaying(true);
       } catch (e) {
-        // Browser may block autoplay, wait for user interaction
+        // Browser blocked autoplay - on mobile we still want to retry on ANY interaction
         const handleInteraction = async () => {
           try {
             initAudio();
             await audio.play();
             setIsPlaying(true);
           } catch (err) {
-            console.warn('Auto-play failed:', err.message);
+            console.warn('Auto-play failed after interaction:', err.message);
           }
+          if (interactionCleanup) interactionCleanup();
+        };
+
+        document.addEventListener('click', handleInteraction, { once: true });
+        document.addEventListener('touchstart', handleInteraction, { once: true });
+        document.addEventListener('keydown', handleInteraction, { once: true });
+
+        interactionCleanup = () => {
           document.removeEventListener('click', handleInteraction);
           document.removeEventListener('touchstart', handleInteraction);
           document.removeEventListener('keydown', handleInteraction);
         };
-        document.addEventListener('click', handleInteraction, { once: true });
-        document.addEventListener('touchstart', handleInteraction, { once: true });
-        document.addEventListener('keydown', handleInteraction, { once: true });
       }
     };
 
-    tryAutoPlay();
+    const timer = setTimeout(tryAutoPlay, isMobile ? 300 : 100);
 
     const onEnded = () => setIsPlaying(false);
     const onError = () => {
@@ -183,12 +208,23 @@ const MusicPlayer = () => {
     };
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
+
     return () => {
+      clearTimeout(timer);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
+      if (interactionCleanup) interactionCleanup();
     };
-  }, [initAudio]);
+  }, [initAudio, isMobile]);
 
+  // Mobile: invisible audio only, no particle UI
+  if (isMobile) {
+    return (
+      <audio ref={audioRef} src={MUSIC_SRC} preload="auto" loop style={{ display: 'none' }} />
+    );
+  }
+
+  // Desktop: particle music player
   return (
     <div
       className="music-player-particles"

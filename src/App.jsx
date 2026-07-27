@@ -15,6 +15,7 @@ import HeroSection from './components/HeroSection';
 import LettersModule from './components/letters/LettersModule';
 import ProfileMenu from './components/ProfileMenu';
 import MusicPlayer from './components/MusicPlayer';
+import MobileNavbar from './components/MobileNavbar';
 import LoginPage from './components/LoginPage';
 
 function MainApp() {
@@ -55,17 +56,21 @@ function MainApp() {
   return React.createElement(EnergyProvider, null,
     React.createElement('div', { style: { width: '100%', height: '100%', margin: 0, padding: 0 } },
       page === 'home' || page === 'city' || page === 'province' ? React.createElement('div', { style: { display: (page === 'city' || page === 'province') ? 'none' : 'block', width: '100%', height: '100%' } },
-        !isMobile ? React.createElement(React.Fragment, null,
-          React.createElement(Navbar, { activeTab, setTab: handleSetTab, isMobile, isDarkMode: ['letters'].includes(activeTab) }),
-          React.createElement(ProfileMenu, { onGoWhisper: () => handleSetTab('letters'), isLettersActive: activeTab === 'letters' })
-        ) : null,
-        React.createElement('div', { className: 'page-content' },
-          activeTab === 'keywords' && !isMobile ? React.createElement(KeywordsParticle, null) : null,
+        React.createElement(React.Fragment, null,
+          !isMobile ? React.createElement(Navbar, { activeTab, setTab: handleSetTab, isMobile, isDarkMode: ['letters'].includes(activeTab) }) : null,
+          !isMobile ? React.createElement(ProfileMenu, { onGoWhisper: () => handleSetTab('letters'), isLettersActive: activeTab === 'letters' }) : null
+        ),
+        React.createElement('div', {
+          className: 'page-content',
+          style: isMobile ? { paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' } : undefined
+        },
+          activeTab === 'keywords' ? React.createElement(KeywordsParticle, null) : null,
           activeTab === 'towhere' ? React.createElement(PinkAnimationHome, { goTo, goToCity, goToProvince, isCityMode: page === 'city', isMobile }) : null,
           activeTab === 'breaking' ? React.createElement(FirstsTimeline, null) : null,
-          activeTab === 'letters' && !isMobile ? React.createElement(LettersModule, null) : null
+          activeTab === 'letters' ? React.createElement(LettersModule, null) : null
         ),
-        activeTab === 'keywords' && !isMobile ? React.createElement(StarshipWidget, null) : null
+        activeTab === 'keywords' && !isMobile ? React.createElement(StarshipWidget, null) : null,
+        isMobile ? React.createElement(MobileNavbar, { activeTab, setTab: handleSetTab, onGoWhisper: () => handleSetTab('letters') }) : null
       ) : null,
       page === 'story' ? React.createElement(Story, { goTo }) : null,
       page === 'end' ? React.createElement(End, { goTo }) : null,

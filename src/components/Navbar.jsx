@@ -2,12 +2,11 @@ import React from 'react';
 import '../style.css';
 
 const Navbar = ({ activeTab, setTab, isMobile, isDarkMode }) => {
-    const allTabs = [
+    const tabs = [
         { id: 'keywords', label: '知你' },
         { id: 'towhere', label: '拾光' },
         { id: 'breaking', label: '初时' },
     ];
-    const tabs = isMobile ? allTabs.filter(t => ['towhere', 'breaking'].includes(t.id)) : allTabs;
     return (
         React.createElement('nav', { className: 'fixed-navbar' + (isDarkMode ? ' dark-mode' : '') },
             React.createElement('div', { className: 'navbar-container' },

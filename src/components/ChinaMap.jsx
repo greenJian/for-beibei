@@ -49,6 +49,7 @@ const PROVINCE_SHORT = {
 
 export default function ChinaMap({ onProvinceSelect }) {
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
   const [geoData, setGeoData] = useState(null);
   const [geoLoading, setGeoLoading] = useState(true);
   const [geoError, setGeoError] = useState(false);
@@ -56,6 +57,16 @@ export default function ChinaMap({ onProvinceSelect }) {
   const [litProvinces, setLitProvinces] = useState(new Set());
   const [hoveredProvince, setHoveredProvince] = useState(null);
   const [isCompact, setIsCompact] = useState(window.innerWidth < 1024);
+
+  // Zoom / Pan state
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const gestureRef = useRef({
+    isDragging: false,
+    startX: 0, startY: 0,
+    startTransform: { x: 0, y: 0, scale: 1 },
+    pinchStartDist: 0,
+    touches: [],
+  });
 
   // Detect compact layout (tablet + mobile)
   useEffect(() => {
@@ -67,15 +78,15 @@ export default function ChinaMap({ onProvinceSelect }) {
   // Responsive dimensions
   useEffect(() => {
     const handleResize = () => {
-      if (svgRef.current?.parentElement) {
-        const { clientWidth, clientHeight } = svgRef.current.parentElement;
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
         setDimensions({ width: clientWidth || 800, height: clientHeight || 600 });
       }
     };
     handleResize();
     const observer = new ResizeObserver(handleResize);
-    if (svgRef.current?.parentElement) {
-      observer.observe(svgRef.current.parentElement);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
     return () => observer.disconnect();
   }, []);
@@ -101,7 +112,7 @@ export default function ChinaMap({ onProvinceSelect }) {
 
   const { width, height } = dimensions;
 
-  // Helper: get centroid coords from a feature (works for both Polygon and MultiPolygon)
+  // Helper: get centroid coords from a feature
   const getCentroid = (feature) => {
     let coords;
     if (feature.geometry.type === 'Polygon') {
@@ -119,15 +130,146 @@ export default function ChinaMap({ onProvinceSelect }) {
     return { x: cx, y: cy };
   };
 
+  // ===== Zoom / Pan Handlers =====
+
+  const limitTransform = (t) => {
+    const maxOffsetX = width * (t.scale - 1) * 0.5 + 100;
+    const maxOffsetY = height * (t.scale - 1) * 0.5 + 100;
+    return {
+      scale: Math.min(Math.max(t.scale, 0.5), 5),
+      x: Math.max(-maxOffsetX, Math.min(maxOffsetX, t.x)),
+      y: Math.max(-maxOffsetY, Math.min(maxOffsetY, t.y)),
+    };
+  };
+
+  const getTouchDistance = (t1, t2) => {
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  };
+
+  const getTouchCenter = (t1, t2) => ({
+    x: (t1.clientX + t2.clientX) / 2,
+    y: (t1.clientY + t2.clientY) / 2,
+  });
+
+  const onTouchStart = useCallback((e) => {
+    const g = gestureRef.current;
+    g.touches = Array.from(e.touches);
+    if (g.touches.length === 1) {
+      g.isDragging = true;
+      g.startX = g.touches[0].clientX;
+      g.startY = g.touches[0].clientY;
+      g.startTransform = { ...transform };
+    } else if (g.touches.length === 2) {
+      g.isDragging = false;
+      g.pinchStartDist = getTouchDistance(g.touches[0], g.touches[1]);
+      g.pinchCenter = getTouchCenter(g.touches[0], g.touches[1]);
+      g.startTransform = { ...transform };
+    }
+  }, [transform]);
+
+  const onTouchMove = useCallback((e) => {
+    e.preventDefault();
+    const g = gestureRef.current;
+    const touches = Array.from(e.touches);
+
+    if (touches.length === 1 && g.isDragging && g.touches.length === 1) {
+      const dx = touches[0].clientX - g.startX;
+      const dy = touches[0].clientY - g.startY;
+      setTransform(limitTransform({
+        x: g.startTransform.x + dx,
+        y: g.startTransform.y + dy,
+        scale: g.startTransform.scale,
+      }));
+    } else if (touches.length === 2 && g.touches.length >= 2) {
+      const newDist = getTouchDistance(touches[0], touches[1]);
+      const newCenter = getTouchCenter(touches[0], touches[1]);
+      const scaleRatio = newDist / (g.pinchStartDist || 1);
+      const newScale = g.startTransform.scale * scaleRatio;
+
+      // Zoom around the pinch center
+      const centerX = newCenter.x - containerRef.current.getBoundingClientRect().left;
+      const centerY = newCenter.y - containerRef.current.getBoundingClientRect().top;
+      const scaleChange = newScale / g.startTransform.scale;
+      const dx = centerX - centerX * scaleChange;
+      const dy = centerY - centerY * scaleChange;
+
+      setTransform(limitTransform({
+        x: g.startTransform.x * scaleChange + dx,
+        y: g.startTransform.y * scaleChange + dy,
+        scale: newScale,
+      }));
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    gestureRef.current.isDragging = false;
+    gestureRef.current.touches = [];
+  }, []);
+
+  // Mouse wheel zoom
+  const onWheel = useCallback((e) => {
+    e.preventDefault();
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(Math.max(transform.scale * delta, 0.5), 5);
+    const scaleChange = newScale / transform.scale;
+    const dx = mouseX - mouseX * scaleChange;
+    const dy = mouseY - mouseY * scaleChange;
+
+    setTransform(limitTransform({
+      x: transform.x * scaleChange + dx,
+      y: transform.y * scaleChange + dy,
+      scale: newScale,
+    }));
+  }, [transform]);
+
+  // Double click zoom in
+  const onDoubleClick = useCallback((e) => {
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const newScale = Math.min(transform.scale * 1.5, 5);
+    const scaleChange = newScale / transform.scale;
+    const dx = mouseX - mouseX * scaleChange;
+    const dy = mouseY - mouseY * scaleChange;
+    setTransform(limitTransform({
+      x: transform.x * scaleChange + dx,
+      y: transform.y * scaleChange + dy,
+      scale: newScale,
+    }));
+  }, [transform]);
+
+  const resetZoom = useCallback(() => {
+    setTransform({ x: 0, y: 0, scale: 1 });
+  }, []);
+
+  const transformStyle = {
+    transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+    transformOrigin: '0 0',
+    transition: gestureRef.current.isDragging ? 'none' : 'transform 0.2s ease-out',
+  };
+
   return (
     <div style={{
       width: '100%', height: '100%', display: 'flex',
       flexDirection: 'column', background: '#0a0f1a',
     }}>
-      <div style={{
-        flex: 1, width: '100%', position: 'relative',
-        minHeight: isCompact ? 220 : 0,
-      }}>
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1, width: '100%', position: 'relative',
+          minHeight: isCompact ? 220 : 0,
+          touchAction: 'none',
+          overflow: 'hidden',
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onWheel={onWheel}
+        onDoubleClick={onDoubleClick}
+      >
         <svg
           ref={svgRef}
           width="100%"
@@ -135,78 +277,120 @@ export default function ChinaMap({ onProvinceSelect }) {
           viewBox={`0 0 ${width} ${height}`}
           style={{ display: 'block' }}
         >
-        <rect width={width} height={height} fill="#0a0f1a" />
+          <rect width={width} height={height} fill="#0a0f1a" />
 
-        {geoLoading && (
-          <>
-            <rect width={width} height={height} fill="rgba(10,15,26,0.9)" />
-            <text x={width / 2} y={height / 2} textAnchor="middle" fill="#FFB84D" fontSize="18" fontWeight="500" fontFamily="PingFang SC, sans-serif">
-              地图加载中...
-            </text>
-          </>
-        )}
+          {/* Zoom / Pan group */}
+          <g style={transformStyle}>
+            {geoLoading && (
+              <>
+                <rect width={width} height={height} fill="rgba(10,15,26,0.9)" />
+                <text x={width / 2} y={height / 2} textAnchor="middle" fill="#FFB84D" fontSize="18" fontWeight="500" fontFamily="PingFang SC, sans-serif">
+                  地图加载中...
+                </text>
+              </>
+            )}
 
-        {geoError && (
-          <>
-            <rect width={width} height={height} fill="rgba(10,15,26,0.9)" />
-            <text x={width / 2} y={height / 2} textAnchor="middle" fill="#FF8FAB" fontSize="16" fontFamily="PingFang SC, sans-serif">
-              地图数据加载失败，请检查网络
-            </text>
-          </>
-        )}
+            {geoError && (
+              <>
+                <rect width={width} height={height} fill="rgba(10,15,26,0.9)" />
+                <text x={width / 2} y={height / 2} textAnchor="middle" fill="#FF8FAB" fontSize="16" fontFamily="PingFang SC, sans-serif">
+                  地图数据加载失败，请检查网络
+                </text>
+              </>
+            )}
 
-        {/* Province polygons */}
-        {geoData && geoData.features && geoData.features.map((feature, fi) => {
-          const name = feature.properties.name;
-          const isLit = litProvinces.has(name);
-          const isHovered = hoveredProvince === name;
-          const centroid = getCentroid(feature);
+            {/* Province polygons */}
+            {geoData && geoData.features && geoData.features.map((feature, fi) => {
+              const name = feature.properties.name;
+              const isLit = litProvinces.has(name);
+              const isHovered = hoveredProvince === name;
+              const centroid = getCentroid(feature);
 
-          return (
-            <g key={fi}>
-              {featureToPaths(feature, width, height).map((pathData, pi) => (
-                <path
-                  key={pi}
-                  d={pathData}
-                  fill={isLit
-                    ? (isHovered ? 'rgba(255,184,77,0.7)' : 'rgba(255,184,77,0.4)')
-                    : (isHovered ? 'rgba(255,255,255,0.12)' : 'rgba(30,30,60,0.3)')
-                  }
-                  stroke={isLit
-                    ? (isHovered ? 'rgba(255,184,77,0.9)' : 'rgba(255,184,77,0.5)')
-                    : 'rgba(80,80,130,0.25)'
-                  }
-                  strokeWidth={isLit ? 1.5 : 1}
-                  style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={() => setHoveredProvince(name)}
-                  onMouseLeave={() => setHoveredProvince(null)}
-                  onClick={() => onProvinceSelect && onProvinceSelect(name)}
-                />
-              ))}
+              return (
+                <g key={fi}>
+                  {featureToPaths(feature, width, height).map((pathData, pi) => (
+                    <path
+                      key={pi}
+                      d={pathData}
+                      fill={isLit
+                        ? (isHovered ? 'rgba(255,184,77,0.7)' : 'rgba(255,184,77,0.4)')
+                        : (isHovered ? 'rgba(255,255,255,0.12)' : 'rgba(30,30,60,0.3)')
+                      }
+                      stroke={isLit
+                        ? (isHovered ? 'rgba(255,184,77,0.9)' : 'rgba(255,184,77,0.5)')
+                        : 'rgba(80,80,130,0.25)'
+                      }
+                      strokeWidth={isLit ? 1.5 : 1}
+                      style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                      onMouseEnter={() => setHoveredProvince(name)}
+                      onMouseLeave={() => setHoveredProvince(null)}
+                      onClick={() => onProvinceSelect && onProvinceSelect(name)}
+                    />
+                  ))}
 
-              {/* Province label */}
-              {name && centroid && (() => {
-                const pos = lngLatToXY(centroid.x, centroid.y, width, height);
-                const short = PROVINCE_SHORT[name] || name;
-                const fontSize = short.length > 3 ? 11 : (short.length > 2 ? 12 : 13);
-                return (
-                  <text
-                    x={pos.x} y={pos.y}
-                    textAnchor="middle"
-                    fontSize={fontSize}
-                    fill={isLit ? '#fff' : 'rgba(255,255,255,0.5)'}
-                    fontWeight={isLit ? 600 : 400}
-                    fontFamily="PingFang SC, sans-serif"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {short}
-                  </text>
-                );
-              })()}
-            </g>
-          );
-        })}
-      </svg>
+                  {/* Province label */}
+                  {name && centroid && (() => {
+                    const pos = lngLatToXY(centroid.x, centroid.y, width, height);
+                    const short = PROVINCE_SHORT[name] || name;
+                    const fontSize = short.length > 3 ? 11 : (short.length > 2 ? 12 : 13);
+                    return (
+                      <text
+                        x={pos.x} y={pos.y}
+                        textAnchor="middle"
+                        fontSize={fontSize}
+                        fill={isLit ? '#fff' : 'rgba(255,255,255,0.5)'}
+                        fontWeight={isLit ? 600 : 400}
+                        fontFamily="PingFang SC, sans-serif"
+                        style={{ pointerEvents: 'none', userSelect: 'none' }}
+                      >
+                        {short}
+                      </text>
+                    );
+                  })()}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Zoom controls */}
+        <div style={{
+          position: 'absolute',
+          bottom: 12,
+          right: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          zIndex: 10,
+        }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setTransform(limitTransform({ ...transform, scale: Math.min(transform.scale * 1.3, 5) })); }}
+            style={zoomBtnStyle}
+            title="放大"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setTransform(limitTransform({ ...transform, scale: Math.max(transform.scale / 1.3, 0.5) })); }}
+            style={zoomBtnStyle}
+            title="缩小"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); resetZoom(); }}
+            style={{ ...zoomBtnStyle, display: transform.scale !== 1 || transform.x !== 0 || transform.y !== 0 ? 'flex' : 'none' }}
+            title="复位"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Province list for tablet + mobile */}
@@ -264,3 +448,17 @@ export default function ChinaMap({ onProvinceSelect }) {
     </div>
   );
 }
+
+const zoomBtnStyle = {
+  width: 34, height: 34,
+  borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,0.15)',
+  background: 'rgba(10,15,26,0.8)',
+  backdropFilter: 'blur(8px)',
+  color: 'rgba(255,255,255,0.7)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+};
