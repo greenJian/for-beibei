@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-const GEOJSON_URL = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json';
+const GEOJSON_URL = `${import.meta.env.BASE_URL}china-geo.json`;
 
 const CHINA_BOUNDS = { minLng: 73.5, maxLng: 135.1, minLat: 17.5, maxLat: 53.6 };
 

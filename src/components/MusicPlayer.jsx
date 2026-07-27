@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './MusicPlayer.css';
 
-const MUSIC_SRC = '/music/bg.mp3';
+const MUSIC_SRC = `${import.meta.env.BASE_URL}music/bg.mp3`;
 
 const PARAMS = {
   particleCount: 200, baseSize: 2, sizeVariance: 1,
