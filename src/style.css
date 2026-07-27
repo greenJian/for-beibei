@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
+
+html, body { margin: 0; padding: 0; height: 100vh; height: 100svh; width: 100vw; overflow: hidden; }
+body { font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif; background: #0a0f1a; color: #fff; }
+#root { width: 100%; height: 100%; margin: 0; padding: 0; }
+button:active { opacity: 0.8; }
+
+.fixed-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; z-index: 1000; display: flex; justify-content: center; align-items: center; background: transparent !important; pointer-events: none; }
+.navbar-container { display: flex; gap: 40px; pointer-events: none; }
+.nav-tab { pointer-events: auto; background: transparent; border: none; color: rgba(255,255,255,0.7); font-size: 16px; font-weight: 500; padding: 8px 16px; cursor: pointer; position: relative; transition: all 0.3s ease; font-family: 'PingFang SC', sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.nav-tab:hover { color: #fff; }
+.nav-tab.active { color: #fff; font-weight: 700; }
+.nav-tab.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 20px; height: 2px; background-color: #fff; border-radius: 2px; box-shadow: 0 0 8px rgba(255,255,255,0.8); }
+.nav-logout-btn { pointer-events: auto; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); font-size: 14px; padding: 6px 16px; border-radius: 20px; cursor: pointer; transition: all 0.3s ease; font-family: 'PingFang SC', sans-serif; margin-left: 20px; }
+.nav-logout-btn:hover { background: rgba(255,80,80,0.2); border-color: rgba(255,80,80,0.4); color: rgba(255,120,120,0.9); }
+.page-content { width: 100vw; height: 100%; position: relative; overflow: hidden; }
+
+.letters-icon-wrapper { position: fixed; top: 15px; right: 30px; z-index: 1001; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: rgba(255,255,255,0.7); transition: all 0.3s ease; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+.letters-icon-wrapper:hover { color: #fff; background: rgba(255,255,255,0.2); }
+.letters-icon-wrapper.active { color: #fff; background: rgba(246,190,200,0.3); border-color: rgba(246,190,200,0.5); box-shadow: 0 0 15px rgba(246,190,200,0.4); }
+
+@media (max-width: 768px) {
+  .fixed-navbar { height: auto; top: auto; bottom: 20px; }
+  .navbar-container { gap: 15px; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; }
+}
