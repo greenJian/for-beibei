@@ -168,62 +168,47 @@ const MusicPlayer = () => {
     }
   }, [isPlaying, setupAudioGraph, hasMusic]);
 
-  // Auto-play on mount
+  // Auto-play on mount — registers interaction listeners BEFORE attempting
+  // autoplay, so any click (e.g. login button) triggers music immediately.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    let interactionCleanup = null;
-
-    const tryAutoPlay = async () => {
-      if (autoplayAttempted.current) return;
-      autoplayAttempted.current = true;
-
+    // Single handler: sets up AudioContext (needs user gesture) and starts playback.
+    // With { once: true } the listener auto-removes after the first interaction.
+    const handleInteraction = async () => {
       try {
-        // Play directly through the audio element — do NOT set up the Web Audio
-        // graph here, because the AudioContext would be suspended without a user
-        // gesture and createMediaElementSource would route audio into a dead graph.
-        await audio.play();
+        await setupAudioGraph();
+        if (audio.paused) {
+          await audio.play();
+        }
         setIsPlaying(true);
-      } catch (e) {
-        // Browser blocked autoplay — retry on first user interaction.
-        const handleInteraction = async () => {
-          try {
-            await setupAudioGraph();
-            await audio.play();
-            setIsPlaying(true);
-          } catch (err) {
-            console.warn('Auto-play failed after interaction:', err.message);
-          }
-          if (interactionCleanup) interactionCleanup();
-        };
-
-        document.addEventListener('click', handleInteraction, { once: true });
-        document.addEventListener('touchstart', handleInteraction, { once: true });
-        document.addEventListener('keydown', handleInteraction, { once: true });
-
-        interactionCleanup = () => {
-          document.removeEventListener('click', handleInteraction);
-          document.removeEventListener('touchstart', handleInteraction);
-          document.removeEventListener('keydown', handleInteraction);
-        };
+      } catch (err) {
+        console.warn('Playback after interaction failed:', err.message);
       }
     };
 
-    const timer = setTimeout(tryAutoPlay, isMobile ? 300 : 100);
+    // Register IMMEDIATELY — before the delayed autoplay attempt — so no
+    // click is ever missed. Includes mousedown for broader browser coverage.
+    const EVENTS = ['click', 'mousedown', 'touchstart', 'keydown'];
+    EVENTS.forEach(evt => {
+      document.addEventListener(evt, handleInteraction, { once: true });
+    });
 
-    // Even if autoplay succeeded, we still need to set up the Web Audio graph
-    // for the particle visualization. Do it on the first user interaction (any
-    // click/touch/keydown), at which point the AudioContext can actually run.
-    const setupGraphOnInteraction = () => {
-      setupAudioGraph();
-      document.removeEventListener('click', setupGraphOnInteraction);
-      document.removeEventListener('touchstart', setupGraphOnInteraction);
-      document.removeEventListener('keydown', setupGraphOnInteraction);
+    // Try direct autoplay (may succeed if the browser already has a gesture
+    // token or if autoplay policy allows it).
+    const tryAutoPlay = async () => {
+      if (autoplayAttempted.current) return;
+      autoplayAttempted.current = true;
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch (e) {
+        // Browser blocked — the interaction listener above handles the rest.
+      }
     };
-    document.addEventListener('click', setupGraphOnInteraction);
-    document.addEventListener('touchstart', setupGraphOnInteraction);
-    document.addEventListener('keydown', setupGraphOnInteraction);
+
+    const timer = setTimeout(tryAutoPlay, 100);
 
     const onEnded = () => setIsPlaying(false);
     const onError = () => {
@@ -237,12 +222,9 @@ const MusicPlayer = () => {
       clearTimeout(timer);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
-      if (interactionCleanup) interactionCleanup();
-      document.removeEventListener('click', setupGraphOnInteraction);
-      document.removeEventListener('touchstart', setupGraphOnInteraction);
-      document.removeEventListener('keydown', setupGraphOnInteraction);
-      // Reset for React 18 StrictMode double-mount: the second mount
-      // would otherwise see autoplayAttempted=true and skip autoplay.
+      EVENTS.forEach(evt => {
+        document.removeEventListener(evt, handleInteraction);
+      });
       autoplayAttempted.current = false;
     };
   }, [setupAudioGraph, isMobile]);
