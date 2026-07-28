@@ -25,7 +25,7 @@ const MusicPlayer = () => {
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
   const hueShiftRef = useRef(0);
-  const hasInitAudio = useRef(false);
+  const audioGraphReady = useRef(false);
   const autoplayAttempted = useRef(false);
 
   // Detect mobile
@@ -117,25 +117,34 @@ const MusicPlayer = () => {
     return () => cancelAnimationFrame(animationRef.current);
   }, [isPlaying, isMobile]);
 
-  // Initialize audio context
-  const initAudio = useCallback(() => {
-    if (!audioRef.current) return;
-    if (hasInitAudio.current) {
-      // Already initialized, just resume if suspended
+  // Set up Web Audio API graph (AudioContext + analyser + media source).
+  // MUST be called from within a user gesture so the AudioContext can run.
+  // Before this is called, the audio element plays directly through speakers.
+  // After this is called, audio is routed through: source → analyser → destination
+  const setupAudioGraph = useCallback(async () => {
+    if (audioGraphReady.current) {
       if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume();
+        await audioCtxRef.current.resume();
       }
       return;
     }
-    hasInitAudio.current = true;
+    if (!audioRef.current) return;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    audioCtxRef.current = new AudioContext();
-    analyserRef.current = audioCtxRef.current.createAnalyser();
-    analyserRef.current.smoothingTimeConstant = 0.85;
-    analyserRef.current.fftSize = 64;
-    sourceRef.current = audioCtxRef.current.createMediaElementSource(audioRef.current);
-    sourceRef.current.connect(analyserRef.current);
-    analyserRef.current.connect(audioCtxRef.current.destination);
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    if (ctx.state === 'running') {
+      analyserRef.current = ctx.createAnalyser();
+      analyserRef.current.smoothingTimeConstant = 0.85;
+      analyserRef.current.fftSize = 64;
+      analyserRef.current.connect(ctx.destination);
+      sourceRef.current = ctx.createMediaElementSource(audioRef.current);
+      sourceRef.current.connect(analyserRef.current);
+      audioGraphReady.current = true;
+    }
   }, []);
 
   // Toggle play/pause
@@ -145,7 +154,7 @@ const MusicPlayer = () => {
     if (!hasMusic) return;
 
     try {
-      initAudio();
+      await setupAudioGraph();
       if (isPlaying) {
         audio.pause();
         setIsPlaying(false);
@@ -157,7 +166,7 @@ const MusicPlayer = () => {
       console.warn('Audio playback failed, maybe no music file yet:', err.message);
       setIsPlaying(false);
     }
-  }, [isPlaying, initAudio, hasMusic]);
+  }, [isPlaying, setupAudioGraph, hasMusic]);
 
   // Auto-play on mount
   useEffect(() => {
@@ -171,14 +180,16 @@ const MusicPlayer = () => {
       autoplayAttempted.current = true;
 
       try {
-        initAudio();
+        // Play directly through the audio element — do NOT set up the Web Audio
+        // graph here, because the AudioContext would be suspended without a user
+        // gesture and createMediaElementSource would route audio into a dead graph.
         await audio.play();
         setIsPlaying(true);
       } catch (e) {
-        // Browser blocked autoplay - on mobile we still want to retry on ANY interaction
+        // Browser blocked autoplay — retry on first user interaction.
         const handleInteraction = async () => {
           try {
-            initAudio();
+            await setupAudioGraph();
             await audio.play();
             setIsPlaying(true);
           } catch (err) {
@@ -201,6 +212,19 @@ const MusicPlayer = () => {
 
     const timer = setTimeout(tryAutoPlay, isMobile ? 300 : 100);
 
+    // Even if autoplay succeeded, we still need to set up the Web Audio graph
+    // for the particle visualization. Do it on the first user interaction (any
+    // click/touch/keydown), at which point the AudioContext can actually run.
+    const setupGraphOnInteraction = () => {
+      setupAudioGraph();
+      document.removeEventListener('click', setupGraphOnInteraction);
+      document.removeEventListener('touchstart', setupGraphOnInteraction);
+      document.removeEventListener('keydown', setupGraphOnInteraction);
+    };
+    document.addEventListener('click', setupGraphOnInteraction);
+    document.addEventListener('touchstart', setupGraphOnInteraction);
+    document.addEventListener('keydown', setupGraphOnInteraction);
+
     const onEnded = () => setIsPlaying(false);
     const onError = () => {
       setHasMusic(false);
@@ -214,8 +238,14 @@ const MusicPlayer = () => {
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
       if (interactionCleanup) interactionCleanup();
+      document.removeEventListener('click', setupGraphOnInteraction);
+      document.removeEventListener('touchstart', setupGraphOnInteraction);
+      document.removeEventListener('keydown', setupGraphOnInteraction);
+      // Reset for React 18 StrictMode double-mount: the second mount
+      // would otherwise see autoplayAttempted=true and skip autoplay.
+      autoplayAttempted.current = false;
     };
-  }, [initAudio, isMobile]);
+  }, [setupAudioGraph, isMobile]);
 
   // Mobile: invisible audio only, no particle UI
   if (isMobile) {
