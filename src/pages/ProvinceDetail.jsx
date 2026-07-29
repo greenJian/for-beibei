@@ -370,7 +370,7 @@ export default function ProvinceDetail({ provinceName, goBack }) {
           </div>
 
           {/* No data */}
-          {memories.length === 0 && (
+          {groupedByCity.length === 0 && (
             <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: '80px 20px' }}>
               <div style={{ fontSize: 44, marginBottom: 12 }}>📷</div>
               <div>暂无回忆，返回地图点击"点亮地图"添加吧</div>

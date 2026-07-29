@@ -602,7 +602,7 @@ const styles = {
     },
 
     fab: {
-        position: 'fixed', right: 32, bottom: 40, width: 60, height: 60,
+        position: 'fixed', right: 32, bottom: 80, width: 60, height: 60,
         borderRadius: '50%', fontSize: 30, fontWeight: 300, color: '#fff',
         background: 'linear-gradient(135deg, #f6becc, #e89aa9)', border: 'none',
         cursor: 'pointer', zIndex: 50, boxShadow: '0 8px 28px rgba(246,190,200,0.45)',

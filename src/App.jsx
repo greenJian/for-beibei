@@ -80,14 +80,16 @@ function MainApp() {
       page === 'province' && selectedProvince ? React.createElement('div', { style: { position: 'absolute', top: 0, left: 0, width: '100vw', height: '100%', zIndex: 9999, background: 'linear-gradient(135deg, #0a0f1a 0%, #0d1525 40%, #111d35 100%)' } },
         React.createElement(ProvinceDetail, { provinceName: selectedProvince, goBack: goBackToMap })
       ) : null,
-      page === 'annual' ? React.createElement(EnergyStation, { goTo }) : null,
-      React.createElement(MusicPlayer, null)
+      page === 'annual' ? React.createElement(EnergyStation, { goTo }) : null
     )
   );
 }
 
 export default function App() {
   return React.createElement(AuthProvider, null,
-    React.createElement(MainApp, null)
+    React.createElement(React.Fragment, null,
+      React.createElement(MainApp, null),
+      React.createElement(MusicPlayer, null)
+    )
   );
 }
