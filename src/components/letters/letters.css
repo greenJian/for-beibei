@@ -566,7 +566,7 @@
 /* ---- Corner Pen (Write button) ---- */
 .corner-pen-illustration {
     position: absolute;
-    bottom: 30px;
+    bottom: 80px;
     right: 30px;
     width: 100px;
     height: 100px;
@@ -662,7 +662,7 @@
 /* ---- Drafts Tray ---- */
 .drafts-tray {
     position: fixed;
-    bottom: 20px;
+    bottom: 70px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;

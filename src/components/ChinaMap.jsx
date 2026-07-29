@@ -57,6 +57,7 @@ export default function ChinaMap({ onProvinceSelect }) {
   const [litProvinces, setLitProvinces] = useState(new Set());
   const [hoveredProvince, setHoveredProvince] = useState(null);
   const [isCompact, setIsCompact] = useState(window.innerWidth < 1024);
+  const [showProvinceList, setShowProvinceList] = useState(false);
 
   // Zoom / Pan state
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
@@ -393,56 +394,76 @@ export default function ChinaMap({ onProvinceSelect }) {
         </div>
       </div>
 
-      {/* Province list for tablet + mobile */}
+      {/* Province list for tablet + mobile — collapsible */}
       {isCompact && geoData && geoData.features && (
         <div style={{
           flexShrink: 0, width: '100%',
           borderTop: '1px solid rgba(255,255,255,0.08)',
           background: 'rgba(10,15,26,0.95)',
         }}>
-          <div style={{
-            padding: '8px 12px',
-            fontSize: 12, color: 'rgba(255,255,255,0.35)',
-          }}>
-            点击省份查看详情
-          </div>
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 6,
-            padding: '0 12px 12px',
-            maxHeight: isCompact ? 140 : 0,
-            overflowY: 'auto',
-          }}>
-            {geoData.features.map((feature, fi) => {
-              const name = feature.properties.name;
-              if (!name) return null;
-              const isLit = litProvinces.has(name);
-              const short = PROVINCE_SHORT[name] || name;
-              return (
-                <button
-                  key={fi}
-                  onClick={() => onProvinceSelect && onProvinceSelect(name)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 16,
-                    border: isLit
-                      ? '1px solid rgba(255,184,77,0.5)'
-                      : '1px solid rgba(255,255,255,0.1)',
-                    background: isLit
-                      ? 'rgba(255,184,77,0.15)'
-                      : 'rgba(255,255,255,0.03)',
-                    color: isLit ? '#FFB84D' : 'rgba(255,255,255,0.45)',
-                    fontSize: 13,
-                    fontWeight: isLit ? 600 : 400,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {short}
-                </button>
-              );
-            })}
-          </div>
+          {/* Toggle header */}
+          <button
+            onClick={() => setShowProvinceList(!showProvinceList)}
+            style={{
+              width: '100%', padding: '10px 14px',
+              background: 'none', border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+              fontSize: 13, fontFamily: "'PingFang SC', sans-serif",
+            }}
+          >
+            <span>点击省份查看详情 ({geoData.features.length} 个省份)</span>
+            <svg
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              width="16" height="16"
+              style={{
+                transform: showProvinceList ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.25s ease',
+              }}
+            >
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          {showProvinceList && (
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 6,
+              padding: '0 12px 12px',
+              maxHeight: 160,
+              overflowY: 'auto',
+            }}>
+              {geoData.features.map((feature, fi) => {
+                const name = feature.properties.name;
+                if (!name) return null;
+                const isLit = litProvinces.has(name);
+                const short = PROVINCE_SHORT[name] || name;
+                return (
+                  <button
+                    key={fi}
+                    onClick={() => onProvinceSelect && onProvinceSelect(name)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 16,
+                      border: isLit
+                        ? '1px solid rgba(255,184,77,0.5)'
+                        : '1px solid rgba(255,255,255,0.1)',
+                      background: isLit
+                        ? 'rgba(255,184,77,0.15)'
+                        : 'rgba(255,255,255,0.03)',
+                      color: isLit ? '#FFB84D' : 'rgba(255,255,255,0.45)',
+                      fontSize: 13,
+                      fontWeight: isLit ? 600 : 400,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {short}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -275,7 +275,7 @@ export default function KeywordsParticle() {
         type="button"
         onClick={() => openAdd(activeCat !== '全部' ? activeCat : '其他')}
         style={{
-          position: 'fixed', bottom: 32, right: 32, zIndex: 50,
+          position: 'fixed', bottom: 80, right: 32, zIndex: 50,
           width: 50, height: 50, borderRadius: '50%',
           background: 'linear-gradient(135deg, #FFB84D 0%, #FF8FAB 100%)',
           border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer',
