@@ -4,7 +4,7 @@ import '../style.css';
 const Navbar = ({ activeTab, setTab, isMobile, isDarkMode }) => {
     const tabs = [
         { id: 'keywords', label: '知你' },
-        { id: 'towhere', label: '寻光' },
+        { id: 'towhere', label: '拾光' },
         { id: 'breaking', label: '初时' },
     ];
     return (

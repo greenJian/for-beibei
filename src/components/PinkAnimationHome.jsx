@@ -123,7 +123,7 @@ export default function PinkAnimationHome({ goTo, goToCity, goToProvince, isCity
         animate={{ opacity: 1, y: 0 }}
         onClick={handleOpenUpload}
         style={{
-          position: 'absolute', bottom: 80, right: 32,
+          position: 'absolute', bottom: 32, right: 32,
           zIndex: 200, padding: '14px 28px', borderRadius: 28,
           background: 'linear-gradient(135deg, #FFB84D 0%, #FF8FAB 100%)',
           border: 'none', color: '#fff', fontSize: 16, fontWeight: 600,
