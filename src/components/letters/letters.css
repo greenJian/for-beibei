@@ -793,10 +793,180 @@
     opacity: 0.4;
 }
 
-/* Touch device fix: always show hover-dependent elements */
-@media (hover: none) and (pointer: coarse) {
-    .envelope-delete-btn { opacity: 1 !important; }
-    .delete-draft-btn { opacity: 1 !important; }
+/* ---- Mobile Responsive Fixes ---- */
+@media (max-width: 768px) {
+    /* Allow scrolling on the whole letters container */
+    .letters-module-container {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Main area: align content to top on mobile */
+    .letters-main-area {
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        padding-top: 20px;
+        flex-grow: 1;
+        min-height: auto;
+    }
+
+    /* Envelope stack: scale down to fit screen */
+    .stack-wrapper {
+        width: 90vw !important;
+        height: auto !important;
+        min-height: unset;
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .envelope-container {
+        transform: scale(0.5);
+        transform-origin: center center;
+    }
+
+    /* BounceCards: vertical stack on mobile */
+    .bounceCardsContainer {
+        flex-direction: column !important;
+        gap: 6px !important;
+        height: auto !important;
+        min-height: unset !important;
+        width: 100% !important;
+        padding: 6px 0 80px;
+        overflow-y: visible;
+    }
+
+    .bounceCardsContainer .card {
+        position: relative !important;
+        transform: none !important;
+        width: min(280px, 82vw) !important;
+        height: 170px !important;
+        margin: 0 auto 6px !important;
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: auto !important;
+    }
+
+    /* Write letter: fit screen */
+    .parchment {
+        width: 92vw !important;
+        height: 85vh !important;
+        max-width: none !important;
+        padding: 20px 16px 16px !important;
+    }
+
+    .writing-mode {
+        padding: 10px !important;
+    }
+
+    .form-header {
+        margin-bottom: 12px !important;
+    }
+
+    .input-prefix,
+    .sender-input {
+        font-size: 1.2rem !important;
+    }
+
+    .letter-textarea {
+        font-size: 1.3rem !important;
+        padding: 8px !important;
+    }
+
+    .form-footer {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 10px;
+        margin-top: 8px !important;
+    }
+
+    .date-input-container {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between;
+    }
+
+    .date-input-container .sender-input {
+        width: auto !important;
+        flex: 1;
+    }
+
+    .form-actions {
+        justify-content: center !important;
+        gap: 12px;
+    }
+
+    .btn-cancel,
+    .btn-send,
+    .btn-draft {
+        padding: 10px 24px !important;
+        font-size: 1rem !important;
+        flex: 1;
+        max-width: 140px;
+    }
+
+    /* Corner pen button: keep visible */
+    .corner-pen-illustration {
+        width: 70px !important;
+        height: 70px !important;
+        right: 16px !important;
+        bottom: 90px !important;
+    }
+
+    /* Mailbox grid: vertical stack on mobile */
+    .mailbox-title-area {
+        padding-top: 40px;
+    }
+
+    .mailbox-grid {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 0 10px !important;
+        max-width: 100% !important;
+        overflow-y: auto;
+        max-height: calc(100vh - 260px);
+    }
+
+    .mailbox-item svg {
+        width: 120px !important;
+        height: 165px !important;
+    }
+
+    .mailbox-title {
+        font-size: 1.6rem !important;
+    }
+
+    .mailbox-scene {
+        padding: 20px 10px 100px !important;
+        justify-content: flex-start !important;
+        overflow-y: auto;
+    }
+
+    /* Letter paper reading view */
+    .letter-paper-wrapper .parchment {
+        padding: 20px 16px 16px !important;
+    }
+
+    .handwriting-text {
+        font-size: 1.3rem !important;
+    }
+
+    .letter-recipient,
+    .letter-footer .letter-sender {
+        font-size: 1.2rem !important;
+    }
+
+    /* Drafts tray */
+    .drafts-tray {
+        gap: 10px !important;
+    }
+
+    .draft-item {
+        width: 60px !important;
+        height: 85px !important;
+    }
 }
 
 .cloud-1 {

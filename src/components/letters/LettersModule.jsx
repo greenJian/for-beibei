@@ -79,13 +79,14 @@ export default function LettersModule() {
 
     useEffect(() => { fetchLetters(); }, [fetchLetters]);
 
-    // 按年份筛选信件
-    const filteredLetters = selectedYear
+    // 按年份筛选并排序信件（按日期降序，最新的在上面）
+    const filteredLetters = (selectedYear
         ? letters.filter(l => {
             try { return new Date(l.date).getFullYear() === selectedYear; }
             catch { return false; }
         })
-        : letters;
+        : letters
+    ).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const handleOpenLetter = (letter) => {
         setSelectedLetter(letter);

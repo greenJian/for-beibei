@@ -354,118 +354,183 @@ export default function ChinaMap({ onProvinceSelect }) {
           </g>
         </svg>
 
-        {/* Zoom controls */}
-        <div style={{
-          position: 'absolute',
-          bottom: 12,
-          right: 12,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-          zIndex: 10,
-        }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); setTransform(limitTransform({ ...transform, scale: Math.min(transform.scale * 1.3, 5) })); }}
-            style={zoomBtnStyle}
-            title="放大"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setTransform(limitTransform({ ...transform, scale: Math.max(transform.scale / 1.3, 0.5) })); }}
-            style={zoomBtnStyle}
-            title="缩小"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); resetZoom(); }}
-            style={{ ...zoomBtnStyle, display: transform.scale !== 1 || transform.x !== 0 || transform.y !== 0 ? 'flex' : 'none' }}
-            title="复位"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Province list for tablet + mobile — collapsible */}
-      {isCompact && geoData && geoData.features && (
-        <div style={{
-          flexShrink: 0, width: '100%',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(10,15,26,0.95)',
-        }}>
-          {/* Toggle header */}
-          <button
-            onClick={() => setShowProvinceList(!showProvinceList)}
-            style={{
-              width: '100%', padding: '10px 14px',
-              background: 'none', border: 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
-              fontSize: 13, fontFamily: "'PingFang SC', sans-serif",
-            }}
-          >
-            <span>点击省份查看详情 ({geoData.features.length} 个省份)</span>
-            <svg
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              width="16" height="16"
+        {/* Province dropdown — mobile only */}
+        {isCompact && geoData && geoData.features && (
+          <div style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 20,
+          }}>
+            {/* Dropdown toggle button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowProvinceList(!showProvinceList); }}
               style={{
-                transform: showProvinceList ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.25s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                borderRadius: 22,
+                border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(10,15,26,0.85)',
+                backdropFilter: 'blur(10px)',
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: 14,
+                fontWeight: 500,
+                fontFamily: "'PingFang SC', sans-serif",
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
               }}
             >
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span>足迹</span>
+              <svg
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                width="14" height="14"
+                style={{
+                  transform: showProvinceList ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.25s ease',
+                }}
+              >
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
 
-          {showProvinceList && (
-            <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: 6,
-              padding: '0 12px 12px',
-              maxHeight: 160,
-              overflowY: 'auto',
-            }}>
-              {geoData.features.map((feature, fi) => {
-                const name = feature.properties.name;
-                if (!name) return null;
-                const isLit = litProvinces.has(name);
-                const short = PROVINCE_SHORT[name] || name;
-                return (
-                  <button
-                    key={fi}
-                    onClick={() => onProvinceSelect && onProvinceSelect(name)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 16,
-                      border: isLit
-                        ? '1px solid rgba(255,184,77,0.5)'
-                        : '1px solid rgba(255,255,255,0.1)',
-                      background: isLit
-                        ? 'rgba(255,184,77,0.15)'
-                        : 'rgba(255,255,255,0.03)',
-                      color: isLit ? '#FFB84D' : 'rgba(255,255,255,0.45)',
-                      fontSize: 13,
-                      fontWeight: isLit ? 600 : 400,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    {short}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+            {/* Dropdown list — opens downward */}
+            {showProvinceList && (
+              <div style={{
+                position: 'absolute',
+                top: 48,
+                left: 0,
+                width: 220,
+                maxHeight: 280,
+                overflowY: 'auto',
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(10,15,26,0.95)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                padding: '8px 0',
+              }}>
+                {/* Click outside to close backdrop */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    zIndex: -1,
+                  }}
+                  onClick={(e) => { e.stopPropagation(); setShowProvinceList(false); }}
+                />
+                {(() => {
+                  const litProvincesArr = [];
+                  const unlitProvincesArr = [];
+                  geoData.features.forEach((feature) => {
+                    const name = feature.properties.name;
+                    if (!name) return;
+                    if (litProvinces.has(name)) {
+                      litProvincesArr.push(name);
+                    } else {
+                      unlitProvincesArr.push(name);
+                    }
+                  });
+                  const sorted = [...litProvincesArr, ...unlitProvincesArr];
+                  return sorted.map((name) => {
+                    const isLit = litProvinces.has(name);
+                    const short = PROVINCE_SHORT[name] || name;
+                    return (
+                      <button
+                        key={name}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowProvinceList(false);
+                          onProvinceSelect && onProvinceSelect(name);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '10px 16px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: isLit ? '#FFB84D' : 'rgba(255,255,255,0.5)',
+                          fontSize: 14,
+                          fontWeight: isLit ? 600 : 400,
+                          fontFamily: "'PingFang SC', sans-serif",
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span style={{
+                          width: 8, height: 8,
+                          borderRadius: '50%',
+                          background: isLit ? '#FFB84D' : 'rgba(255,255,255,0.15)',
+                          flexShrink: 0,
+                        }}/>
+                        {short}
+                        {isLit && (
+                          <span style={{
+                            marginLeft: 'auto',
+                            fontSize: 11,
+                            color: 'rgba(255,184,77,0.5)',
+                          }}>已点亮</span>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Zoom controls — mobile only */}
+        {isCompact && (
+          <div style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            zIndex: 10,
+          }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setTransform(limitTransform({ ...transform, scale: Math.min(transform.scale * 1.3, 5) })); }}
+              style={zoomBtnStyle}
+              title="放大"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setTransform(limitTransform({ ...transform, scale: Math.max(transform.scale / 1.3, 0.5) })); }}
+              style={zoomBtnStyle}
+              title="缩小"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); resetZoom(); }}
+              style={{ ...zoomBtnStyle, display: transform.scale !== 1 || transform.x !== 0 || transform.y !== 0 ? 'flex' : 'none' }}
+              title="复位"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
