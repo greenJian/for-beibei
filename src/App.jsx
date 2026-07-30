@@ -30,7 +30,7 @@ function MainApp() {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile && activeTab === 'keywords') setActiveTab('towhere');
+      {/* 不再强制跳转，允许手机端正常使用知你页面 */}
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

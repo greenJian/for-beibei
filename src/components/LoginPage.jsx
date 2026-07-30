@@ -82,7 +82,7 @@ const LoginPage = () => {
             💕
           </motion.div>
           <h1 className="login-title">For Beibei</h1>
-          <p className="login-subtitle">属于我们的专属回忆</p>
+          <p className="login-subtitle">属于我们的独家记忆</p>
         </div>
 
         {/* 选择账号 */}

@@ -821,7 +821,7 @@
     }
 
     .envelope-container {
-        transform: scale(0.5);
+        transform: scale(0.65);
         transform-origin: center center;
     }
 
@@ -839,8 +839,8 @@
     .bounceCardsContainer .card {
         position: relative !important;
         transform: none !important;
-        width: min(280px, 82vw) !important;
-        height: 170px !important;
+        width: min(370px, 90vw) !important;
+        height: 220px !important;
         margin: 0 auto 6px !important;
         left: auto !important;
         right: auto !important;
