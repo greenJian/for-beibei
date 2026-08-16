@@ -1,2 +1,16 @@
 
 .firsts-container { width: 100%; height: 100vh; overflow-y: auto; }
+
+/* Mobile: ensure add-first modal content is scrollable and action buttons are not hidden by bottom navbar */
+@media (max-width: 768px) {
+    .firsts-modal-mask {
+        align-items: flex-start !important;
+        padding-top: 30px !important;
+        padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    .firsts-modal-card {
+        padding: 20px !important;
+        max-height: calc(100vh - 100px - env(safe-area-inset-bottom, 0px)) !important;
+        border-radius: 14px !important;
+    }
+}

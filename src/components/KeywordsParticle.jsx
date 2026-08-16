@@ -107,7 +107,9 @@ export default function KeywordsParticle() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100%',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
       background: 'linear-gradient(135deg, #0a0f1a 0%, #0d1525 40%, #111d35 100%)',
       color: '#fff', position: 'relative',
       fontFamily: "'PingFang SC', 'Hiragino Sans GB', sans-serif",
@@ -295,7 +297,8 @@ export default function KeywordsParticle() {
         >
           <div
             style={{
-              width: 'min(400px, 92vw)', maxHeight: '80vh', overflow: 'auto',
+              width: 'min(400px, 92vw)', maxHeight: '85vh', overflow: 'auto',
+              WebkitOverflowScrolling: 'touch',
               background: 'linear-gradient(180deg, rgba(15,22,40,0.98) 0%, rgba(10,15,26,0.98) 100%)',
               borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)',
               padding: '28px 24px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadToSupabase } from '../../lib/supabaseStorage';
+import './FirstsTimeline.css';
 
 /* ------------------------------------------------------------------ */
 /*  工具函数                                                            */
@@ -351,6 +352,7 @@ export default function FirstsTimeline() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         style={styles.modalMask}
+                        className="firsts-modal-mask"
                         onClick={() => !submitting && setShowModal(false)}
                     >
                         <motion.form
@@ -359,6 +361,7 @@ export default function FirstsTimeline() {
                             exit={{ y: 20, opacity: 0, scale: 0.96 }}
                             transition={{ type: 'spring', stiffness: 260, damping: 24 }}
                             style={styles.modalCard}
+                            className="firsts-modal-card"
                             onClick={(e) => e.stopPropagation()}
                             onSubmit={handleSubmit}
                         >
@@ -621,6 +624,7 @@ const styles = {
         border: '1px solid rgba(246,190,200,0.28)', borderRadius: 18,
         boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
         display: 'flex', flexDirection: 'column',
+        maxHeight: '90vh', overflow: 'auto', WebkitOverflowScrolling: 'touch',
     },
     modalTitle: {
         fontSize: 18, fontWeight: 700, marginBottom: 18,

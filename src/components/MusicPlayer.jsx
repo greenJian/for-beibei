@@ -17,6 +17,7 @@ const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasMusic, setHasMusic] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isBuffering, setIsBuffering] = useState(false);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -27,6 +28,7 @@ const MusicPlayer = () => {
   const hueShiftRef = useRef(0);
   const audioGraphReady = useRef(false);
   const autoplayAttempted = useRef(false);
+  const isPlayingRef = useRef(false);
 
   // Detect mobile
   useEffect(() => {
@@ -61,7 +63,11 @@ const MusicPlayer = () => {
     particlesRef.current = pArray;
   }, [isMobile]);
 
-  // Render loop (desktop only)
+  // Sync ref with state
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+
+  // Render loop (desktop only) — uses ref instead of state in deps
+  // so the animation loop isn't torn down/recreated on every play/pause toggle.
   useEffect(() => {
     if (isMobile) return;
     const canvas = canvasRef.current;
@@ -73,7 +79,8 @@ const MusicPlayer = () => {
       ctx.clearRect(0, 0, size, size);
       hueShiftRef.current = (hueShiftRef.current + PARAMS.hueCycleSpeed) % 360;
       let dataArray = null;
-      if (analyserRef.current && isPlaying) {
+      const playing = isPlayingRef.current;
+      if (analyserRef.current && playing) {
         const bufferLength = analyserRef.current.frequencyBinCount;
         dataArray = new Uint8Array(bufferLength);
         analyserRef.current.getByteFrequencyData(dataArray);
@@ -87,13 +94,13 @@ const MusicPlayer = () => {
           const binIndex = index % dataArray.length;
           pFreq = dataArray[binIndex] / 256;
         }
-        const targetSpeed = isPlaying ? p.speed + (pFreq * PARAMS.audioSpeedMultiplier) : p.speed;
+        const targetSpeed = playing ? p.speed + (pFreq * PARAMS.audioSpeedMultiplier) : p.speed;
         p.angle += targetSpeed;
         p.driftBaseX += p.driftSpeed;
         p.driftBaseY += p.driftSpeed;
         const driftX = Math.cos(p.driftBaseX) * 10;
         const driftY = Math.sin(p.driftBaseY) * 10;
-        const audioOffset = isPlaying ? (pFreq * PARAMS.audioRadiusMultiplier) : 0;
+        const audioOffset = playing ? (pFreq * PARAMS.audioRadiusMultiplier) : 0;
         const currentRadius = p.radius + audioOffset;
         p.x = centerX + Math.cos(p.angle) * currentRadius + driftX;
         p.y = centerY + Math.sin(p.angle) * currentRadius + driftY;
@@ -101,13 +108,13 @@ const MusicPlayer = () => {
         const edgeFade = Math.max(0, 1 - (distFromCenter / (maxDist - 10)));
         if (edgeFade > 0) {
           ctx.beginPath();
-          const currentSize = Math.max(0.1, p.size + (isPlaying ? pFreq * PARAMS.audioSizeMultiplier : 0));
+          const currentSize = Math.max(0.1, p.size + (playing ? pFreq * PARAMS.audioSizeMultiplier : 0));
           ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
-          const audioAlpha = isPlaying ? (pFreq * PARAMS.audioAlphaMultiplier) : 0;
+          const audioAlpha = playing ? (pFreq * PARAMS.audioAlphaMultiplier) : 0;
           const finalAlpha = Math.min(1, PARAMS.baseAlpha * 0.5 + audioAlpha) * edgeFade;
           const hue = hueShift;
           ctx.fillStyle = 'hsla(' + hue + ', ' + PARAMS.saturation + '%, ' + PARAMS.lightness + '%, ' + finalAlpha + ')';
-          ctx.shadowBlur = isPlaying ? 3 + (pFreq * 5) : 2;
+          ctx.shadowBlur = playing ? 3 + (pFreq * 5) : 2;
           ctx.shadowColor = 'hsla(' + hue + ', ' + PARAMS.saturation + '%, ' + PARAMS.lightness + '%, ' + (finalAlpha * 0.5) + ')';
           ctx.fill();
         }
@@ -115,7 +122,7 @@ const MusicPlayer = () => {
     };
     renderFrame();
     return () => cancelAnimationFrame(animationRef.current);
-  }, [isPlaying, isMobile]);
+  }, [isMobile]);
 
   // Set up Web Audio API graph (AudioContext + analyser + media source).
   // MUST be called from within a user gesture so the AudioContext can run.
@@ -147,7 +154,8 @@ const MusicPlayer = () => {
     }
   }, []);
 
-  // Toggle play/pause
+  // Toggle play/pause — checks audio.paused (ground truth) instead of
+  // isPlaying state to avoid race conditions with the auto-play listeners.
   const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -155,7 +163,7 @@ const MusicPlayer = () => {
 
     try {
       await setupAudioGraph();
-      if (isPlaying) {
+      if (!audio.paused) {
         audio.pause();
         setIsPlaying(false);
       } else {
@@ -166,7 +174,7 @@ const MusicPlayer = () => {
       console.warn('Audio playback failed, maybe no music file yet:', err.message);
       setIsPlaying(false);
     }
-  }, [isPlaying, setupAudioGraph, hasMusic]);
+  }, [setupAudioGraph, hasMusic]);
 
   // Auto-play on mount — registers interaction listeners BEFORE attempting
   // autoplay, so any click (e.g. login button) triggers music immediately.
@@ -215,13 +223,45 @@ const MusicPlayer = () => {
       setHasMusic(false);
       setIsPlaying(false);
     };
+
+    // Buffering event handlers — keep UI state in sync and help diagnostics
+    const onWaiting = () => setIsBuffering(true);
+    const onPlaying = () => { setIsBuffering(false); setIsPlaying(true); };
+    const onCanPlay = () => setIsBuffering(false);
+    const onStalled = () => setIsBuffering(true);
+
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('stalled', onStalled);
+
+    // Visibility change handler — resume AudioContext when tab becomes
+    // visible again. Browsers suspend AudioContext in background tabs,
+    // which stops audio routed through the Web Audio API graph.
+    const onVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          try {
+            await audioCtxRef.current.resume();
+          } catch (e) {
+            // ignore — will retry on next interaction
+          }
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       clearTimeout(timer);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('stalled', onStalled);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       EVENTS.forEach(evt => {
         document.removeEventListener(evt, handleInteraction);
       });
@@ -241,10 +281,12 @@ const MusicPlayer = () => {
     <div
       className="music-player-particles"
       onClick={togglePlay}
-      title={hasMusic ? (isPlaying ? '点击暂停背景音乐' : '点击播放背景音乐') : '请在 public/music/ 目录放入 bg.mp3'}
+      title={hasMusic ? (isBuffering ? '音乐缓冲中…' : isPlaying ? '点击暂停背景音乐' : '点击播放背景音乐') : '请在 public/music/ 目录放入 bg.mp3'}
       style={{
         position: 'fixed', bottom: 30, left: 30, zIndex: 99999,
         width: 120, height: 120, cursor: hasMusic ? 'pointer' : 'default',
+        opacity: isBuffering ? 0.6 : 1,
+        transition: 'opacity 0.3s ease',
       }}
     >
       <audio ref={audioRef} src={MUSIC_SRC} preload="auto" loop />
