@@ -51,7 +51,6 @@ export default function LettersModule() {
                 .from('letters')
                 .select('*')
                 .eq('is_draft', false)
-                .eq('author_id', user?.id)
                 .order('date', { ascending: false });
 
             if (lettersError) throw lettersError;
