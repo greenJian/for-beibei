@@ -12,6 +12,33 @@
     z-index: 10 !important;
 }
 
+/* Mobile: timeline layout robustness */
+@media (max-width: 768px) {
+    .firsts-body {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+    .firsts-date-group {
+        gap: 14px !important;
+        margin-bottom: 22px !important;
+    }
+    .firsts-date-label {
+        /* horizontal fallback for browsers with broken vertical-rl */
+        -webkit-writing-mode: vertical-rl;
+        writing-mode: vertical-rl;
+        font-size: 12px !important;
+    }
+    .firsts-record-card {
+        padding: 14px 16px !important;
+        gap: 10px !important;
+    }
+    .firsts-record-text {
+        font-size: 15px !important;
+        line-height: 1.65 !important;
+        padding-right: 24px !important;
+    }
+}
+
 /* Mobile: ensure add-first modal content is scrollable and action buttons are not hidden by bottom navbar */
 @media (max-width: 768px) {
     .firsts-modal-mask {

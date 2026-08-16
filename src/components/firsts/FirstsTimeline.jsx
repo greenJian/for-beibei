@@ -249,7 +249,7 @@ export default function FirstsTimeline() {
             </motion.header>
 
             {/* 时间线主体 */}
-            <div style={styles.body}>
+            <div style={styles.body} className="firsts-body">
                 {loading ? (
                     <div style={styles.empty}>加载中…</div>
                 ) : error && records.length === 0 ? (
@@ -278,10 +278,11 @@ export default function FirstsTimeline() {
                                     exit={{ opacity: 0, x: 24 }}
                                     transition={{ delay: gi * 0.05, duration: 0.5 }}
                                     style={styles.dateGroup}
+                                    className="firsts-date-group"
                                 >
                                     <div style={styles.dateNode}>
                                         <div style={styles.dateDot} />
-                                        <div style={styles.dateLabel}>{formatDate(dateKey)}</div>
+                                        <div style={styles.dateLabel} className="firsts-date-label">{formatDate(dateKey)}</div>
                                     </div>
 
                                     <div style={styles.recordsCol}>
@@ -299,12 +300,13 @@ export default function FirstsTimeline() {
                                                         ...styles.recordCard,
                                                         cursor: r.photo_urls?.length > 0 ? 'pointer' : 'default',
                                                     }}
+                                                    className="firsts-record-card"
                                                     onClick={() => {
                                                         if (r.photo_urls?.length > 0) setSelectedRecord(r);
                                                     }}
                                                 >
                                                     <div style={styles.recordEmoji}>{getEmoji(r.description)}</div>
-                                                    <div style={styles.recordText}>
+                                                    <div style={styles.recordText} className="firsts-record-text">
                                                         {r.description}
                                                         {r.photo_urls?.length > 0 && (
                                                             <span style={styles.photoIndicator}> 📷</span>
@@ -580,13 +582,15 @@ const styles = {
     },
     dateLabel: {
         marginTop: 10, fontSize: 13, fontWeight: 600, color: '#f6becc',
-        writingMode: 'vertical-rl', letterSpacing: '0.1em', whiteSpace: 'nowrap',
+        writingMode: 'vertical-rl', WebkitWritingMode: 'vertical-rl', msWritingMode: 'tb-rl',
+        letterSpacing: '0.1em', whiteSpace: 'nowrap',
     },
-    recordsCol: { flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 4 },
+    recordsCol: { flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 4, minWidth: 0 },
     recordCard: {
         display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px',
         background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
         border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, backdropFilter: 'blur(6px)',
+        minWidth: 0,
     },
     recordEmoji: {
         fontSize: 26, lineHeight: 1, flexShrink: 0,
@@ -594,7 +598,8 @@ const styles = {
     },
     recordText: {
         fontSize: 16, lineHeight: 1.7, color: 'rgba(255,255,255,0.92)',
-        wordBreak: 'break-word', flex: 1,
+        wordBreak: 'break-word', overflowWrap: 'break-word', flex: 1, minWidth: 0,
+        paddingRight: 28,
     },
     photoIndicator: { opacity: 0.5, fontSize: 14 },
     deleteBtn: {
