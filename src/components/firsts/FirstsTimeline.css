@@ -1,6 +1,17 @@
 
 .firsts-container { width: 100%; height: 100vh; overflow-y: auto; }
 
+/* 弹窗按钮始终粘在底部，不依赖滚动 */
+.firsts-modal-actions {
+    position: sticky !important;
+    bottom: -20px !important;
+    margin-top: auto !important;
+    padding-top: 12px !important;
+    padding-bottom: 4px !important;
+    background: linear-gradient(180deg, transparent 0%, #0c1018 30%, #0c1018 100%) !important;
+    z-index: 10 !important;
+}
+
 /* Mobile: ensure add-first modal content is scrollable and action buttons are not hidden by bottom navbar */
 @media (max-width: 768px) {
     .firsts-modal-mask {
@@ -10,7 +21,15 @@
     }
     .firsts-modal-card {
         padding: 20px !important;
+        /* fallback for browsers without env() support */
+        max-height: calc(100vh - 100px) !important;
+        /* browsers with env() support */
         max-height: calc(100vh - 100px - env(safe-area-inset-bottom, 0px)) !important;
         border-radius: 14px !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    .firsts-modal-actions {
+        bottom: -20px;
     }
 }

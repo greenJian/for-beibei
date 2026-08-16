@@ -423,7 +423,7 @@ export default function FirstsTimeline() {
 
                             {error && <div style={styles.formError}>{error}</div>}
 
-                            <div style={styles.modalActions}>
+                            <div style={styles.modalActions} className="firsts-modal-actions">
                                 <button
                                     type="button"
                                     onClick={() => {
