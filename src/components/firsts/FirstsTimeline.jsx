@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../contexts/AuthContext';
 import { uploadToSupabase } from '../../lib/supabaseStorage';
 import './FirstsTimeline.css';
 
@@ -84,12 +85,20 @@ export default function FirstsTimeline() {
     const [selectedRecord, setSelectedRecord] = useState(null);
     const fileInputRef = useRef(null);
 
+    const { user } = useAuth();
+
     const loadRecords = useCallback(async () => {
         setLoading(true);
         setError('');
+        if (!user?.id) {
+            setRecords([]);
+            setLoading(false);
+            return;
+        }
         const { data, error } = await supabase
             .from('firsts')
             .select('id, date, description, photo_urls, created_at')
+            .eq('user_id', user.id)
             .order('date', { ascending: true });
         if (error) {
             setError(error.message || '加载失败');
@@ -97,7 +106,7 @@ export default function FirstsTimeline() {
             setRecords(data || []);
         }
         setLoading(false);
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         if (entered) loadRecords();
@@ -143,6 +152,7 @@ export default function FirstsTimeline() {
         const payload = {
             date: form.date,
             description: form.description.trim(),
+            user_id: user?.id || null,
         };
         if (photoUrls.length > 0) payload.photo_urls = photoUrls;
 

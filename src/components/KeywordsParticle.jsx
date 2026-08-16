@@ -30,13 +30,21 @@ export default function KeywordsParticle() {
 
   const loadHabits = useCallback(async () => {
     try {
-      const { data } = await supabase.from('beibei_habits').select('*').order('created_at', { ascending: false });
-      if (data) setHabits(data);
+      if (!user?.id) {
+        setHabits([]);
+      } else {
+        const { data } = await supabase
+          .from('beibei_habits')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (data) setHabits(data);
+      }
     } catch (err) {
       console.warn('Failed to load habits:', err);
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { loadHabits(); }, [loadHabits]);
 
@@ -81,7 +89,7 @@ export default function KeywordsParticle() {
         setToast('已保存');
       } else {
         await supabase.from('beibei_habits').insert({
-          category: formCat, title: formTitle.trim(), content: formContent,
+          category: formCat, title: formTitle.trim(), content: formContent, user_id: user?.id,
         });
         setToast('已添加');
       }
