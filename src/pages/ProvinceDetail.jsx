@@ -12,9 +12,14 @@ function formatDate(dateStr) {
 function formatDateGroup(dateStr) {
   if (!dateStr) return '未标注日期';
   const d = new Date(dateStr);
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  return `${y}年${m}月`;
+  if (Number.isNaN(d.getTime())) return '未标注日期';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function dateGroupSortKey(dateStr) {
+  if (!dateStr) return 0;
+  const t = new Date(dateStr).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 const inputBaseStyle = {
@@ -428,7 +433,13 @@ export default function ProvinceDetail({ provinceName, goBack }) {
                       transition={{ duration: 0.35, ease: 'easeInOut' }}
                       style={{ overflow: 'hidden' }}
                     >
-                      {Object.entries(dateGroups).map(([dateLabel, groupMemories], dateIdx) => (
+                      {Object.entries(dateGroups)
+                        .sort((a, b) => {
+                          const aMax = Math.max(...a[1].map(m => dateGroupSortKey(m.visit_date)));
+                          const bMax = Math.max(...b[1].map(m => dateGroupSortKey(m.visit_date)));
+                          return bMax - aMax;
+                        })
+                        .map(([dateLabel, groupMemories], dateIdx) => (
                         <div key={dateLabel} style={{ marginBottom: 28 }}>
                           {/* Date header with actions */}
                           <div style={{
